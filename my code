@@ -1,0 +1,417 @@
+from pandas import DataFrame,Series
+import pandas as pd
+import numpy as np
+from sklearn import cross_validation,ensemble
+import xgboost as xgb
+from xgboost.sklearn import XGBClassifier
+from sklearn.feature_selection import  SelectKBest,f_classif
+from sklearn import  metrics,svm
+from sklearn.grid_search import GridSearchCV 
+import matplotlib.pylab as plt
+
+
+
+
+
+train_data = pd.read_csv('D:/0821/tencent data/dsjtzs_txfz_training.txt',sep='\s+',dtype={'code':str},header=None,delim_whitespace=False)
+test_data = pd.read_csv('D:/0821/tencent data/dsjtzs_txfz_testB.txt',sep='\s+',dtype={'code':str},header=None,delim_whitespace=False)
+
+train_zb=train_data.ix[:,1]
+label=train_data.ix[:,3]
+train=train_data.ix[:,1:2]
+test_mb=test_data.ix[:,2] 
+train_mb=train_data.ix[:,2]
+test_zb=test_data.ix[:,1]
+
+t=list()
+for ti in train_mb:
+        time=ti.split(',')
+        t.append(time)
+t=DataFrame(t)
+
+train_mb=t.applymap(lambda x:float(x))
+
+t=list()
+
+for ti in test_mb:
+        time=ti.split(',')
+        t.append(time)
+t=DataFrame(t)
+test_mb=t.applymap(lambda x:float(x))
+
+def  a(train_zb):
+    tim=list()
+    
+    t=list()
+    train_t=train_zb.map(lambda x:x.split(';'))
+    for ti in train_t:
+        ti.pop()       
+        for i in ti:
+            time=i.split(',')
+            t.append(time)
+        t=DataFrame(t)
+        t=t.applymap(lambda x:int(x))
+        t.sort_index(by=2)    
+        tim.append(t)
+        t=[]
+    return tim
+train_zbs=a(train_zb)
+test_zbs=a(test_zb)
+def b(train_zbs):
+    q=list()
+    for i in train_zbs:
+      p=i.ix[:,2]
+      p=p.diff()
+      p=p.dropna()
+      p=p.std()
+      q.append(p)    
+    return q
+def c(train_zbs,train_mb):
+    jl=list()
+    n=0
+    for i in train_zbs:
+        i=i.ix[0,1:2]
+        dist = np.sqrt(np.sum(np.square(i -train_mb.ix[n,:2]))) 
+        jl.append(dist)
+        n=n+1
+    return jl
+def d(train_zbs,s):
+    fc=list()
+    for i in train_zbs:
+        i=np.var(i.ix[:,s])
+        fc.append(i)
+    return fc
+def e(train_zbs,s):
+    ting=list()
+    for i in range(s):
+        j=train_zbs[i]
+        j=j.ix[:,2]
+        j=j.diff()
+        j=j.dropna()
+        j=j[j==0]
+        s=pd.Series(j).tolist()
+        s=len(s)
+        
+        ting.append(s)
+    return ting
+def f(train_zbs,train_mb):
+    jl=list()
+    n=0
+    for i in train_zbs:
+        q=i.ix[0,0:1]
+        j=i[-1:]
+        j=float(j[2])
+        dist = np.sqrt(np.sum(np.square(q -train_mb.ix[n,:2]))) 
+        v=dist/j
+        jl.append(v)
+        n=n+1
+    return jl
+def g(x):
+    y=Series()
+    y=x.map(lambda x:x*x)
+    return y
+def h(train_zbs):
+    d=list()
+    for i in train_zbs:
+        j=len(i)
+        d.append(j)
+    return d
+def i(train_zbs):
+    t=list()
+    for i in train_zbs:
+        j=i.ix[:,2]
+        t.append(np.std(j))
+    return t
+x1=b(train_zbs)
+x2=c(train_zbs,train_mb)
+x3=d(train_zbs,0)
+x4=d(train_zbs,1)
+x5=e(train_zbs,3000)
+x6=f(train_zbs,train_mb)
+x13=h(train_zbs)
+x14=i(train_zbs)
+X1=b(test_zbs)
+X2=c(test_zbs,test_mb)
+X3=d(test_zbs,0)
+X4=d(test_zbs,1)
+X5=e(test_zbs,100000)
+X6=f(test_zbs,test_mb)
+X13=h(test_zbs)
+X14=i(test_zbs)
+x1=np.nan_to_num(x1)
+X1=np.nan_to_num(X1)
+
+
+from sklearn.preprocessing import StandardScaler as sds
+scaler=sds()
+x1=scaler.fit_transform(x1)
+x2=scaler.fit_transform(x2)
+x3=scaler.fit_transform(x3)
+x4=scaler.fit_transform(x4)
+x5=scaler.fit_transform(x5)
+x6=scaler.fit_transform(x6)
+x13=scaler.fit_transform(x13)
+x14=scaler.fit_transform(x14)
+x1=pd.Series(x1)
+x2=pd.Series(x2)
+x3=pd.Series(x3)
+x4=pd.Series(x4)
+x5=pd.Series(x5)
+x6=pd.Series(x6)
+x13=pd.Series(x13)
+x14=pd.Series(x14)
+x7,x8,x9,x10,x11,x12,x15,x16=g(x1),g(x2),g(x3),g(x4),g(x5),g(x6),g(x13),g(x14)
+x7,x8,x9,x10,x11,x12,x15,x16=scaler.fit_transform(x7),scaler.fit_transform(x8),scaler.fit_transform(x9),scaler.fit_transform(x10),scaler.fit_transform(x11),scaler.fit_transform(x12),scaler.fit_transform(x15),scaler.fit_transform(x16)
+x7=pd.Series(x7)
+x8=pd.Series(x8)
+x9=pd.Series(x9)
+x10=pd.Series(x10)
+x11=pd.Series(x11)
+x12=pd.Series(x12)
+x15=pd.Series(x15)
+x16=pd.Series(x16)
+X_train=pd.concat([x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,x16],axis=1)
+y_train=train_data.ix[:,3]
+X_train,X_test,y_train,y_test=cross_validation.train_test_split(X_train,y_train,test_size=0.25,random_state=0)
+
+cls=svm.SVC(kernel='rbf',gamma=5)
+cls.fit(X_train,y_train)
+#       
+
+
+
+X1=scaler.fit_transform(X1)
+X2=scaler.fit_transform(X2)
+X3=scaler.fit_transform(X3)
+X4=scaler.fit_transform(X4)
+X5=scaler.fit_transform(X5)
+X6=scaler.fit_transform(X6)
+X13=scaler.fit_transform(X13)
+X14=scaler.fit_transform(X14)
+X1=pd.Series(X1) 
+X2=pd.Series(X2) 
+X3=pd.Series(X3) 
+X4=pd.Series(X4) 
+X5=pd.Series(X5) 
+X6=pd.Series(X6)
+X13= pd.Series(X13)
+X14= pd.Series(X14)
+X7,X8,X9,X10,X11,X12,X15,X16=g(X1),g(X2),g(X3),g(X4),g(X5),g(X6),g(X13),g(X14)
+X7,X8,X9,X10,X11,X12,X15,X16=scaler.fit_transform(X7),scaler.fit_transform(X8),scaler.fit_transform(X9),scaler.fit_transform(X10),scaler.fit_transform(X11),scaler.fit_transform(X12),scaler.fit_transform(X15),scaler.fit_transform(X16)
+X7=pd.Series(X7)
+X8=pd.Series(X8)
+X9=pd.Series(X9)
+X10=pd.Series(X10)
+X11=pd.Series(X11)
+X12=pd.Series(X12)
+X15=pd.Series(X15)
+X16=pd.Series(X16)
+X1_test=pd.concat([X1,X2,X3,X4,X5,X6,X7,X8,X9,X10,X11,X12,X13,X14,X15,X16],axis=1)
+
+
+
+
+#clf=ensemble.GradientBoostingClassifier()
+#clf.fit(X_train,y_train)
+#predictions=clf.predict(X1_test)
+#
+#print("Training score:%f"%(clf.score(X_train,y_train)))
+#print("Testing score:%f"%(clf.score(X_test,y_test)))
+#result = pd.Series(predictions.astype(np.int32))
+#result.value_counts()
+#predictions=cls.predict(X1_test)
+#result = pd.Series(predictions.astype(np.int32))
+#result.value_counts()
+#result.to_csv("D:/0821/tencent data/BDC1383_20170612.csv", index=False)
+
+#
+#def modelfit(alg, dtrain,predictors, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
+#    if useTrainCV:
+#        xgb_param = alg.get_xgb_params()
+#        xgtrain = xgb.DMatrix(dtrain,predictors )
+#        cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds,
+#            metrics='auc', early_stopping_rounds=early_stopping_rounds, show_progress=False)
+#        alg.set_params(n_estimators=cvresult.shape[0])
+#    
+#    #Fit the algorithm on the data
+#    alg.fit(dtrain, predictors,eval_metric='auc')
+#    
+#    #Predict training set:
+#    dtrain_predictions = alg.predict(dtrain)
+#    dtrain_predprob = alg.predict_proba(dtrain)
+#    
+#    #Print model report:
+#    print ("\nModel Report")
+#    print ("Accuracy : %.4g" % metrics.accuracy_score(predictors, dtrain_predictions))
+#    print ("AUC Score (Train): %f" % metrics.roc_auc_score(predictors, dtrain_predprob))
+#    
+#    feat_imp = pd.Series(alg.booster().get_fscore()).sort_values(ascending=False)
+#    feat_imp.plot(kind='bar', title='Feature Importances')
+#    plt.ylabel('Feature Importance Score')
+
+
+
+
+
+
+#
+#from sklearn import svm, grid_search
+###param_test2 = {
+## 'max_depth':[4,5,6],
+## 'min_child_weight':[4,5,6]
+##}
+#
+#param_test1 = {
+# 'max_depth':[i for i in range(3,10,2)],
+#}
+##
+##
+#gsearch1 =GridSearchCV(
+#estimator = XGBClassifier(
+#learning_rate =0.1,
+#n_estimators=140, max_depth=5,
+#min_child_weight=1,
+#gamma=0,
+#subsample=0.8,
+#colsample_bytree=0.8,
+#objective= 'binary:logistic',
+#nthread=4,
+#scale_pos_weight=1,
+#seed=27),
+#param_grid = param_test1,
+#scoring='roc_auc',
+#n_jobs=4,
+#iid=False,
+#cv=5)
+#gsearch1.fit(X_train,y_train)
+#gsearch1.grid_scores_, gsearch1.best_params_,gsearch1.best_score_
+
+
+#param_test3 = {
+# 'gamma':[i/10.0 for i in range(0,5)]
+#}
+#gsearch3 = GridSearchCV(
+#estimator = XGBClassifier( 
+#learning_rate =0.1, 
+#n_estimators=140, 
+#max_depth=4, 
+#min_child_weight=6, 
+#gamma=0, 
+#subsample=0.8, 
+#colsample_bytree=0.8, 
+#objective= 'binary:logistic', 
+#nthread=4, 
+#scale_pos_weight=1,
+#seed=27), 
+#param_grid = param_test3, 
+#scoring='roc_auc',
+#n_jobs=4,
+#iid=False, 
+#cv=5)
+#gsearch3.fit(X_train,y_train)
+#gsearch3.grid_scores_, gsearch3.best_params_, gsearch3.best_score_
+#
+#
+#param_test4 = {
+# 'subsample':[i/10.0 for i in range(6,10)],
+# 'colsample_bytree':[i/10.0 for i in range(6,10)]
+#}
+#
+#gsearch4 = GridSearchCV(
+#estimator = XGBClassifier(
+#learning_rate =0.1,
+#n_estimators=177,
+#max_depth=3,
+#min_child_weight=4,
+#gamma=0.1,
+#subsample=0.8,
+#colsample_bytree=0.8,
+#objective= 'binary:logistic',
+#nthread=4,
+#scale_pos_weight=1,
+#seed=27),
+#param_grid = param_test4,
+#scoring='roc_auc',
+#n_jobs=4,
+#iid=False,
+#cv=5)
+#gsearch4.fit(X_train,y_train)
+#gsearch4.grid_scores_, gsearch4.best_params_, gsearch4.best_score_
+##
+#
+#param_test6 = {
+# 'reg_alpha':[1e-5, 1e-2, 0.1, 1, 100]
+#}
+#gsearch6 = GridSearchCV(
+#estimator = XGBClassifier(
+#learning_rate =0.1,
+#n_estimators=177,
+#max_depth=4,
+#min_child_weight=6,
+#gamma=0.1,
+#subsample=0.8,
+#colsample_bytree=0.8,
+#objective= 'binary:logistic',
+#nthread=4,
+#scale_pos_weight=1,
+#seed=27),
+#param_grid = param_test6,
+#scoring='roc_auc',
+#n_jobs=4,
+#iid=False,
+#cv=5)
+#gsearch6.fit(X_train,y_train)
+#gsearch6.grid_scores_, gsearch6.best_params_, gsearch6.best_score_
+
+#xgb4 = XGBClassifier(
+# learning_rate =0.01,
+# n_estimators=3000,
+# max_depth=3,
+# min_child_weight=4,
+# gamma=0,
+# subsample=0.8,
+# colsample_bytree=0.8,
+# reg_alpha=0.005,
+# objective= 'binary:logistic',
+# nthread=4,
+# scale_pos_weight=1,
+# seed=27)
+
+#
+xgb1 = XGBClassifier(
+colsample_bytree=0.6,#0.8
+gamma=0.6,#0.85
+max_depth=3,
+min_child_weight=1,
+reg_alpha=1,#0.1
+reg_lambda=1,
+subsample=0.05,
+learning_rate=0.01,#0.15
+n_estimators=800   #6000
+)
+xgb1.fit(X_train,y_train)
+result=xgb1.predict(X1_test)
+result = pd.Series(result.astype(np.int32))
+result.value_counts()
+###
+#
+#
+#selector=RFECV(estimator=xgb1)
+#selector.fit(X_train,y_train)
+#print("N_features %s"%selector.n_features_)
+#print("Support is %s"%selector.support_)
+#print("Ranking %s"%selector.ranking_)
+#print("Grid Scores %s"%selector.grid_scores_)
+
+#selector=SelectKBest(score_func=f_classif,k=7)
+#selector.fit(X_train,y_train)
+#print("scores_:",selector.scores_)
+#print("pvalues_:",selector.pvalues_)
+#print("selected index:",selector.get_support(True))
+#print("after transform:",selector.transform(X_train))
+
+#selected : [ 1  2  3  5  6  7 12]
+
+#selected index: [ 1  7  8  9  10 11 12]
+
+#selected index: [ 1 3  6  7 14 15 16]
